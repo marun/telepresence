@@ -154,6 +154,17 @@ def podCIDRs(runner: Runner):
     """
     Get pod IPs from nodes if possible, otherwise use pod IPs as heuristic:
     """
+    # OpenShift 4.x defines the pod CIDR in a configuration object
+    try:
+        network_config = json.loads(
+            runner.get_output(runner.kubectl("get", "network.config/cluster", "-o", "json"))
+        )
+    except CalledProcessError as e:
+        runner.write("Failed to get Openshift 4.x network config: {}".format(e))
+    else:
+        pod_cidr = network_config["status"]["clusterNetwork"][0]["cidr"]
+        return [pod_cidr]
+
     cidrs = set()
     try:
         nodes = json.loads(
